@@ -111,6 +111,7 @@ class torchvision_test_aug():
             ])
             return transform
 
+
 class IdDataset(Dataset):
     def __init__(self, cfg, type, transform):
         self.cfg = cfg
@@ -147,11 +148,29 @@ class IdDataset(Dataset):
     def get_labels(self):
         return self.labels
     
-'''
-    img = Image.open(self.img_paths[idx]).convert("RGB")
-        label = self.labels[idx]
-        class_ = self.classes[idx]
-        img = self.transform(img)
-        return img, label, class_
+class IdTestset(Dataset):
+    def __init__(self, files, transform):
+        self.ids = []
+        self.labels = []
+        keys = list(files.keys())
 
-'''
+        for key in keys:
+            labels = files[key] #self.labels
+            val = 0 if 'real' in key else 1
+            for label in labels:
+                self.ids.append(label)
+                self.labels.append(val)
+                
+        self.transform = transform
+
+    def __len__(self):
+        return len(self.labels)
+
+    def __getitem__(self, index):
+        img = Image.open(self.ids[index]).convert("RGB")
+        label = self.labels[index]
+        img = self.transform(img)
+        return img, label
+
+    def get_labels(self):
+        return self.labels

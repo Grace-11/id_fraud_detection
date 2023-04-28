@@ -4,9 +4,8 @@
         "path" : "/media/data2/eunju/ids/",
         "positive_threshold" : 0.5,
         "packet_size" : 10,
-        "img_H" : 512,
-        "img_W" : 800,
-        "frame_size" : [256, 256]
+        "img_H" : 224,
+        "img_W" : 224
     },
 
     "optimizer":{
@@ -25,13 +24,17 @@
     },
 
     "train":{
-        "num_epochs" : 100,
+        "num_epochs" : 50,
         "batch_size" : 32,
         "num_workers" : 1,
         "loss_clip_value" : 10.0
     },
 
     "eval": {
+        "test_json1"        : "/home/data/id_fraud/test1.json",
+        "test_json2"        : "/home/data/id_fraud/test2.json",
+        "test_json3"        : "/home/data/id_fraud/test3.json",
+        "test_json4"        : "/home/data/id_fraud/test4.json",
         "restore_from"      : "/media/data2/eunju/ids/ckpts/221121_204215_epoch20.pt",
         "batch_size"        : 32,
         "num_workers"       : 1,
