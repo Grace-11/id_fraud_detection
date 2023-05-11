@@ -111,7 +111,6 @@ class torchvision_test_aug():
             ])
             return transform
 
-
 class IdDataset(Dataset):
     def __init__(self, cfg, type, transform):
         self.cfg = cfg
@@ -147,7 +146,7 @@ class IdDataset(Dataset):
 
     def get_labels(self):
         return self.labels
-    
+ 
 class IdTestset(Dataset):
     def __init__(self, files, transform):
         self.ids = []

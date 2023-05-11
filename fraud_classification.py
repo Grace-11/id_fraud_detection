@@ -1,5 +1,9 @@
 import torch
 from torch import nn
+import timm
+import numpy as np
+#from timm_pack.timm import create_model
+#from timm.models.vision_transformer import _cfg, VisionTransformer
 
 def get_loss_model():
     return nn.CrossEntropyLoss()
@@ -20,13 +24,94 @@ def get_lr_scheduler(cfg, optimizer):
     return torch.optim.lr_scheduler.StepLR(optimizer,
                         step_size=cfg["optimizer"]["step_size"], gamma=cfg["optimizer"]["gamma"])
 
-class Classifier():
-    def __init__(self, cfg, model):
-        self.model = model
-        self.criterion = get_loss_model()
-        self.optimizer = get_optimizer(cfg, model.parameters())
-        self.lr_scheduler = get_lr_scheduler(cfg, self.optimizer)
+def get_img_size(seq, side):
+    if seq == 0:  # only vit
+        img_H = side
+        img_W = side
+    else:            # only conv or conv + vit
+        img_H = 512
+        img_W = 800
+    return img_H, img_W   
 
+class Resize(nn.Module):
+    def __init__(self, *args):
+        super(Resize, self).__init__()
+        self.shape = args
+    
+    def forward(self, x):
+        W = x.shape[2]
+        H = x.shape[3]
+        side = self.shape[0]
+
+        rx = np.random.randint(W - side)
+        ry = np.random.randint(H - side)
+
+        return x[:,:,rx:rx+side, ry:ry+side] 
+
+def get_concatenator(seq, side, conv_model, vit_model):
+    model = None
+
+    '''
+        for name, param in conv_model.named_parameters():
+            print(name)
+    '''
+    
+    if seq == 0:             # 224 (h) x 224 (w) x 3 (ch)
+        print("vit only")
+        model = vit_model
+
+    elif seq == 1:           # don't care, 3 (ch)
+        print("conv only")
+        model = conv_model
+
+    elif seq == 2:           # 256 (h) x 400 (w) x 64 (ch) -> 224 (h) x 224 (w) x 3 (ch)
+        print("conv, resize, 1x1 conv, vit")
+        model = nn.Sequential(
+            conv_model.conv1,
+            Resize(side, side),
+            nn.Conv2d(64, 3, kernel_size=(1, 1), stride=(1, 1), bias=False),
+            vit_model)
+        
+    elif seq == 3:           # 256 (h) x 400 (w) x 64 (ch) -> 224 (h) x 224 (w) x 3 (ch)
+        print("conv, bn, act, resize, 1x1 conv, vit")
+        model = nn.Sequential(
+            conv_model.conv1,
+            conv_model.bn1,
+            conv_model.act1,
+            Resize(side, side),
+            nn.Conv2d(64, 3, kernel_size=(1, 1), stride=(1, 1), bias=False),
+            vit_model)
+        
+    elif seq == 4:           # 128 (h) x 200 (w) x 64 (ch) -> 224 (h) x 224 (w) x 3 (ch)
+        print("conv, bn, act, maxpool, resize, 1x1 conv, vit")
+        model = nn.Sequential(
+            conv_model.conv1,
+            conv_model.bn1,
+            conv_model.act1,
+            conv_model.maxpool,
+            nn.Conv2d(64, 3, kernel_size=(1, 1), stride=(1, 1), bias=False),
+            vit_model)
+    else:
+        assert(False)
+        
+    return model
+
+class Classifier():
+    def __init__(self, cfg, args):
+        print(args.seqOp, args.patch, args.side)
+        conv_model = timm.create_model('resnet50', pretrained=True)
+
+        vit_name = f'vit_'+ args.vModel + '_patch' + str(args.patch) + '_' + str(args.side)
+        vit_model = timm.create_model(vit_name, pretrained=True, num_classes=2) # vit_base_patch16_224
+        
+        model = get_concatenator(args.seqOp, args.side, conv_model, vit_model)
+        assert(model != None)
+
+        self.model = model.to('cuda')
+        self.criterion = get_loss_model()
+        self.optimizer = get_optimizer(cfg, self.model.parameters())
+        self.lr_scheduler = get_lr_scheduler(cfg, self.optimizer)
+        
     def train_one_epoch(self, trainloader):      # 현재 cutmix 사용 안 함. 
         self.model.train()
         acc = 0.

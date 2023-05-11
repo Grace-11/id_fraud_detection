@@ -1,11 +1,14 @@
 #from timm_pack.timm import create_model
+import timm
 import os
 import argparse
+import time
 import json
+import datetime
+import csv
 
 import torch
 from torch.utils.data import RandomSampler, DataLoader
-from vit import *
 from util import *
 from id_dataset import *
 from fraud_classification import Classifier
@@ -26,29 +29,15 @@ def test(args):
     # Set random seed
     set_all_seed(cfg["seed"])
 
-    model_dir = f'/media/data2/eunju/ids/ckpts/'
-    model_path = model_dir + 'epoch_11_train_acc_0.9007870604375767_test_acc_0.8938828259620908.pt'
+    model_dir = f'/media/data2/eunju/ids/230426_221224/'
     
-    # load model, loss, optimizer
-    vanilla_transformer = Transformer(
-         dim = 1024,
-         depth = 6, 
-         heads = 8, # 16
-         mlp_dim = 2048, 
-         dropout = 0.1
-         )
-
-    model = ViT(
-            image_size = (cfg["data"]["img_H"], cfg["data"]["img_W"]),
-            patch_size = 32,
-            num_classes = 2,
-            dim = 1024,
-            transformer = vanilla_transformer,
-            emb_dropout = 0.1
-            ).to(device)
-    
-    ckpt = torch.load(model_path)
-    model.load_state_dict(ckpt)
+    if FINE_TUNED == 1:
+        model_path = model_dir + 'ckpts/epoch_37_train_acc_0.9945_test_acc_0.9943.pt'
+        model = timm.create_model('vit_base_patch16_224', pretrained=False, num_classes=2).to(device)
+        ckpt = torch.load(model_path)
+        model.load_state_dict(ckpt)
+    else:
+        model = timm.create_model('vit_base_patch16_224', pretrained=True, num_classes=2).to(device)
 
     fraud_classifier = Classifier(cfg, model)
     
@@ -79,7 +68,7 @@ if __name__ == '__main__':
 
     parser = argparse.ArgumentParser()
 
-    parser.add_argument('-c', '--config', default="./config.json") # './study/vit_timm/config.json'
+    parser.add_argument('-c', '--config', default="./study/vit_timm/config.json") # './study/vit_timm/config.json'
     #parser.add_argument('-p', '--pretrained', default=None)
     args = parser.parse_args()
 

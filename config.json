@@ -3,9 +3,7 @@
         "data_json" : "/home/data/id_fraud/trainval_fake_01.json",
         "path" : "/media/data2/eunju/ids/",
         "positive_threshold" : 0.5,
-        "packet_size" : 10,
-        "img_H" : 224,
-        "img_W" : 224
+        "packet_size" : 10
     },
 
     "optimizer":{
@@ -26,7 +24,7 @@
     "train":{
         "num_epochs" : 50,
         "batch_size" : 32,
-        "num_workers" : 1,
+        "num_workers" : 8,
         "loss_clip_value" : 10.0
     },
 
@@ -37,7 +35,7 @@
         "test_json4"        : "/home/data/id_fraud/test4.json",
         "restore_from"      : "/media/data2/eunju/ids/ckpts/221121_204215_epoch20.pt",
         "batch_size"        : 32,
-        "num_workers"       : 1,
+        "num_workers"       : 8,
         "continue"          : "",
         
         "log"               : "/media/data2/eunju/ids/results/"
